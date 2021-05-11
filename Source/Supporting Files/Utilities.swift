@@ -50,6 +50,11 @@ extension UIControl.State: Hashable {
 
 @propertyWrapper
 struct UserDefault<T: Codable> {
+
+    private struct Container<T: Codable>: Codable {
+        var value: T
+    }
+
     let key: String
     let defaultValue: T
 
@@ -61,13 +66,22 @@ struct UserDefault<T: Codable> {
     var wrappedValue: T {
         get {
             if let data = UserDefaults.standard.object(forKey: key) as? Data,
-               let user = try? JSONDecoder().decode(T.self, from: data) {
-                return user
+               let container = try? JSONDecoder().decode(Container<T>.self, from: data) {
+                return container.value
             }
+
+            // check if we might have old data that needs to be migrated
+            if let legacyValue = UserDefaults.standard.object(forKey: key) as? T {
+                if let encoded = try? JSONEncoder().encode(Container(value: legacyValue)) {
+                    UserDefaults.standard.set(encoded, forKey: key)
+                }
+                return legacyValue
+            }
+
             return defaultValue
         }
         set {
-            if let encoded = try? JSONEncoder().encode(newValue) {
+            if let encoded = try? JSONEncoder().encode(Container(value: newValue)) {
                 UserDefaults.standard.set(encoded, forKey: key)
             }
         }

@@ -74,6 +74,7 @@ struct UserDefault<T: Codable> {
             if let legacyValue = UserDefaults.standard.object(forKey: key) as? T {
                 if let encoded = try? JSONEncoder().encode(Container(value: legacyValue)) {
                     UserDefaults.standard.set(encoded, forKey: key)
+                    UserDefaults.standard.synchronize()
                 }
                 return legacyValue
             }
@@ -83,6 +84,7 @@ struct UserDefault<T: Codable> {
         set {
             if let encoded = try? JSONEncoder().encode(Container(value: newValue)) {
                 UserDefaults.standard.set(encoded, forKey: key)
+                UserDefaults.standard.synchronize()
             }
         }
     }
